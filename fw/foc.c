@@ -42,13 +42,15 @@ static const uint32_t PWM[3] = { CSL_CONTROLSS_G0_EPWM0_U_BASE, CSL_CONTROLSS_G0
 
 typedef struct { float kp, ki, i, lim; } Pi;
 
+/* PI with conditional integration: the integrator holds while the output is saturated,
+ * so a current-limited speed step does not wind it up and overshoot. */
 static float pi_run(Pi *c, float err)
 {
+    float u = c->kp * err + c->i + c->ki * err;
+    if (u > c->lim) return c->lim;
+    if (u < -c->lim) return -c->lim;
     c->i += c->ki * err;
-    if (c->i > c->lim) c->i = c->lim;
-    if (c->i < -c->lim) c->i = -c->lim;
-    float u = c->kp * err + c->i;
-    return u > c->lim ? c->lim : (u < -c->lim ? -c->lim : u);
+    return u;
 }
 
 /* Current loop at 1.5 kHz bandwidth for R = 0.2 Ohm, L = 100 uH; speed loop at 15 Hz for
