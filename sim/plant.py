@@ -11,15 +11,21 @@
 #
 # MODELED SIMPLIFICATION: averaged switching (no ripple, no dead time); ideal sensors; the
 # plant steps every PWM period (50 us) with 10 sub-steps.
+# Parameters can be overridden with the PLANT environment variable, a JSON object such as
+# '{"R": 0.3, "J": 2e-4}' (the tests run the same firmware against several motors).
+import json
 import math
+import os
 
 from pmsm import MOTOR
 
-R, L, PSI, P = 0.2, 1e-4, 0.004, 7
-J, B = 1e-4, 1e-5
-VBUS = 24.0
+PARAMS = dict(R=0.2, L=1e-4, PSI=0.004, J=1e-4, B=1e-5, VBUS=24.0, LOAD_NM=0.05, LOAD_AT_S=1.0)
+PARAMS.update(json.loads(os.environ.get("PLANT", "{}")))
+R, L, PSI, J, B, VBUS = (PARAMS[k] for k in ("R", "L", "PSI", "J", "B", "VBUS"))
+LOAD_NM, LOAD_AT_S = PARAMS["LOAD_NM"], PARAMS["LOAD_AT_S"]
+P = 7
 V_PER_A, VBIAS = 0.1, 1.65
-LOAD_NM, LOAD_AT_S = 0.05, 0.7     # load step, plant time
+LOG_S = 0.002
 EPWM = [0x50000000, 0x50001000, 0x50002000]
 TBCTL, TBPRD, CMPA = 0x00, 0xC6, 0xD6
 STEP_US, SUB = 50, 10
@@ -30,6 +36,7 @@ class Peripheral:
         self.ctx = ctx
         self.t = 0.0
         self.next_log = 0.0
+        ctx.info(f"plant params {json.dumps(PARAMS, sort_keys=True)}")
         ctx.schedule_periodic(STEP_US)
 
     def on_access(self, req):
@@ -69,6 +76,6 @@ class Peripheral:
         self.ctx.set_property("adc1", "ch0", VBIAS + V_PER_A * ia)
         self.ctx.set_property("adc1", "ch1", VBIAS + V_PER_A * ib)
         if self.t >= self.next_log:
-            self.next_log += 0.02
+            self.next_log += LOG_S
             self.ctx.info(f"plant t={self.t * 1000:.0f} ms shaft={m.wm * 60 / (2 * math.pi):.0f} rpm "
-                          f"iq={m.iq:.2f} A load={tl:.3f} Nm")
+                          f"id={m.id:.2f} A iq={m.iq:.2f} A load={tl:.3f} Nm")
