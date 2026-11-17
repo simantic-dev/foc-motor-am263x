@@ -28,7 +28,7 @@ b.axhline(5.0, color="grey", lw=0.8, ls=":")
 b.set_ylabel("current (A)")
 b.set_xlabel("time since closed loop (ms)")
 b.legend(loc="upper right")
-b.set_xlim(-380, 900)
+b.set_xlim(-380, 1100)
 for ax in (a, b):
     ax.axvline(load_ms, color="red", lw=0.8)
     ax.grid(alpha=0.3)

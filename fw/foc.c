@@ -210,7 +210,7 @@ void foc_main(void)
                        ms, (int)ref, (int)rpm, (int)(gIq_meas * 1000), gIsrCycles);
             if (ms >= 200 && ms < 300) { n1++; ok1 += fabsf(rpm - 1000) < 20; }
             if (ms >= 500 && ms < 600) { n3++; ok3 += fabsf(rpm - 3000) < 60; }
-            if (ms >= 900) break;
+            if (ms >= 1100) break;
         }
     }
     uint32_t mhz = (uint32_t)(SOC_getSelfCpuClk() / 1000000u);

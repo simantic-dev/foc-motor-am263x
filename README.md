@@ -12,7 +12,7 @@ Simantic's firmware simulator. No board or motor is needed to build, run or test
 - **The simulation** (`sim/`): the firmware binary runs unmodified on the simulated AM2634.
   `plant.py` is a PMSM (R 0.2 Ohm, L 100 uH, 7 pole pairs, 24 V bus) that reads the ePWM compare
   registers and drives the ADC pins; `encoder.py` turns the shaft angle into eQEP A/B edges.
-  The plant adds a 0.05 Nm load at 1.0 s.
+  The plant adds a 0.05 Nm load 200 ms after the shaft first reaches 2950 rpm.
 - **The tests** (`tests/`): pytest runs the scenario against five motors and checks the drive's
   step response, load rejection, limits and timing against the plant's true shaft.
 
@@ -27,7 +27,7 @@ own speed, from eQEP; the blue line is the plant's true shaft. `tools/plot.py` r
 ```sh
 make -C fw PROFILE=release MCU_PLUS_SDK_PATH=... CGT_TI_ARM_CLANG_PATH=... \
      SYSCFG_PATH=... SYSCFG_CLI_PATH=... foc.release.out   # run twice on a clean tree (SysConfig ordering)
-sim run --scenario sim/motor.yaml --ascii --timeout 1.5
+sim run --scenario sim/motor.yaml --ascii --timeout 1.8
 ```
 
 Needs TI MCU+ SDK for AM263x 26.00.00.06, TI Arm Clang 5.1.1 and SysConfig.

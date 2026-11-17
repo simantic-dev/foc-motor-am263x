@@ -19,10 +19,11 @@ import os
 
 from pmsm import MOTOR
 
-PARAMS = dict(R=0.2, L=1e-4, PSI=0.004, J=1e-4, B=1e-5, VBUS=24.0, LOAD_NM=0.05, LOAD_AT_S=1.0)
+PARAMS = dict(R=0.2, L=1e-4, PSI=0.004, J=1e-4, B=1e-5, VBUS=24.0, LOAD_NM=0.05, LOAD_AFTER_S=0.2)
 PARAMS.update(json.loads(os.environ.get("PLANT", "{}")))
 R, L, PSI, J, B, VBUS = (PARAMS[k] for k in ("R", "L", "PSI", "J", "B", "VBUS"))
-LOAD_NM, LOAD_AT_S = PARAMS["LOAD_NM"], PARAMS["LOAD_AT_S"]
+LOAD_NM, LOAD_AFTER_S = PARAMS["LOAD_NM"], PARAMS["LOAD_AFTER_S"]
+LOAD_ARM_RPM = 2950  # the load comes on LOAD_AFTER_S after the shaft first reaches this
 P = 7
 V_PER_A, VBIAS = 0.1, 1.65
 LOG_S = 0.002
@@ -36,6 +37,7 @@ class Peripheral:
         self.ctx = ctx
         self.t = 0.0
         self.next_log = 0.0
+        self.load_at = None
         ctx.info(f"plant params {json.dumps(PARAMS, sort_keys=True)}")
         ctx.schedule_periodic(STEP_US)
 
@@ -52,7 +54,9 @@ class Peripheral:
         dt = STEP_US * 1e-6 / SUB
         mean = sum(duty) / 3
         vph = [VBUS * (d - mean) for d in duty]
-        tl = LOAD_NM if self.t >= LOAD_AT_S else 0.0
+        if self.load_at is None and MOTOR.wm * 60 / (2 * math.pi) >= LOAD_ARM_RPM:
+            self.load_at = self.t + LOAD_AFTER_S
+        tl = LOAD_NM if self.load_at is not None and self.t >= self.load_at else 0.0
         for _ in range(SUB):
             th = P * m.theta_m
             we = P * m.wm
