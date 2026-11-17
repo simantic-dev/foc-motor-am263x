@@ -111,9 +111,9 @@ def test_current_limit_is_respected(run):
 
 def test_firmware_speed_matches_the_shaft(run):
     """The firmware's eQEP speed against the plant's true speed, in steady state."""
-    fw = {r["ms"]: r["rpm"] for r in run.rows if STEP_3000_MS + 250 <= r["ms"] < load_start_ms(run)}
-    true = {round(p["t"] * 1000): p["rpm"] for p in run.plant}
-    pairs = [(v, true[ms]) for ms, v in fw.items() if ms in true]
+    fw = [r for r in run.rows if STEP_3000_MS + 250 <= r["ms"] < load_start_ms(run)]
+    nearest = lambda ms: min(run.plant, key=lambda p: abs(p["t"] * 1000 - ms))["rpm"]
+    pairs = [(r["rpm"], nearest(r["ms"])) for r in fw]
     assert pairs and all(abs(a - b) <= 30 for a, b in pairs), pairs
 
 
