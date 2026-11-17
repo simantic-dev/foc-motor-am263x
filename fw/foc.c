@@ -32,6 +32,8 @@
 #define COUNTS      2000                            /* encoder counts per mechanical turn */
 #define AMP_PER_LSB (3.3f / 4096.0f / 0.1f)         /* 10 mOhm shunt x10 amplifier: 0.1 V/A */
 #define IQ_MAX      5.0f
+#define DEAD_NS     500u                            /* bridge dead time, both edges */
+#define DB_TICKS    (DEAD_NS * 200u / 1000u)        /* TBCLK = 200 MHz */
 #define TICKS(ms)   ((ms) * (PWM_HZ / 1000u))         /* ISR passes in ms */
 #define RPM(w)      ((w) * 60.0f / (2.0f * PI_F))
 
@@ -145,6 +147,15 @@ static void pwm_init(void)
         EPWM_setCounterCompareValue(b, EPWM_COUNTER_COMPARE_A, TBPRD / 2);
         EPWM_setActionQualifierAction(b, EPWM_AQ_OUTPUT_A, EPWM_AQ_OUTPUT_LOW, EPWM_AQ_OUTPUT_ON_TIMEBASE_UP_CMPA);
         EPWM_setActionQualifierAction(b, EPWM_AQ_OUTPUT_A, EPWM_AQ_OUTPUT_HIGH, EPWM_AQ_OUTPUT_ON_TIMEBASE_DOWN_CMPA);
+        /* Active-high complementary: A = high side, B = low side = not A, DEAD_NS on both edges. */
+        EPWM_setRisingEdgeDeadBandDelayInput(b, EPWM_DB_INPUT_EPWMA);
+        EPWM_setFallingEdgeDeadBandDelayInput(b, EPWM_DB_INPUT_EPWMA);
+        EPWM_setDeadBandDelayPolarity(b, EPWM_DB_RED, EPWM_DB_POLARITY_ACTIVE_HIGH);
+        EPWM_setDeadBandDelayPolarity(b, EPWM_DB_FED, EPWM_DB_POLARITY_ACTIVE_LOW);
+        EPWM_setRisingEdgeDelayCount(b, DB_TICKS);
+        EPWM_setFallingEdgeDelayCount(b, DB_TICKS);
+        EPWM_setDeadBandDelayMode(b, EPWM_DB_RED, true);
+        EPWM_setDeadBandDelayMode(b, EPWM_DB_FED, true);
     }
     EPWM_setADCTriggerSource(PWM[0], EPWM_SOC_A, EPWM_SOC_TBCTR_PERIOD, 0);
     EPWM_setADCTriggerEventPrescale(PWM[0], EPWM_SOC_A, 1);
@@ -180,6 +191,7 @@ void foc_main(void)
     DebugP_log("== foc-motor-am263x: FOC of a PMSM on the AM2634 R5F ==\r\n");
     DebugP_log("pwm %u Hz centre-aligned, TBPRD %u, current loop %u Hz, speed loop %u Hz\r\n",
                PWM_HZ, TBPRD, PWM_HZ, PWM_HZ / SPEED_DIV);
+    DebugP_log("bridge   A/B complementary, dead time %u ns (%u TBCLK) on both edges\r\n", DEAD_NS, DB_TICKS);
 
     CycleCounterP_reset();
     pwm_init();

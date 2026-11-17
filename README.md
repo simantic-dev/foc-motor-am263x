@@ -5,7 +5,7 @@ built with TI's MCU+ SDK and tested on every commit in simulation with [Pyrite](
 Simantic's firmware simulator. No board or motor is needed to build, run or test it.
 
 - **The firmware** (`fw/foc.c`, NORTOS, TI driverlib): ePWM0/1/2 generate 20 kHz centre-aligned
-  three-phase PWM; ePWM0 SOCA triggers ADC1 to sample both phase shunts at the centre of the
+  three-phase PWM, A/B complementary with 500 ns dead time; ePWM0 SOCA triggers ADC1 to sample both phase shunts at the centre of the
   low-side window; ADC1 INT1 (through INTXBAR) runs the 20 kHz current loop (Clarke, Park, PI on
   id and iq, inverse Park, SVPWM); a 1 kHz speed loop closes on eQEP1, a 500-line encoder. At boot
   it calibrates the current-sense offsets and aligns the rotor to find the encoder zero.
@@ -21,6 +21,19 @@ Simantic's firmware simulator. No board or motor is needed to build, run or test
 Speed steps 0 -> 1000 -> 3000 rpm, then a 0.05 Nm load. Before t = 0 the drive calibrates its
 current sense and aligns the rotor (the ringing on the d axis). The orange dots are the firmware's
 own speed, from eQEP; the blue line is the plant's true shaft. `tools/plot.py` regenerates it.
+
+## What is yours and what is the tool's
+
+The firmware, the motor model and the pass limits here are an example: a plausible 24 V
+drive, a textbook PMSM and limits picked from its nominal run. On a real project they are the
+engineer's: your firmware, your motor's parameters (or your own plant in `sim/plant.py`), and the
+limits your spec and datasheets set (`MIN_DEAD_NS`, `IQ_LIMIT_A`, the settling and overshoot
+bounds in `tests/test_drive.py`), signed off by you.
+
+What the tool gives you is the runtime: your unmodified binary on the chip's real peripheral
+models (ePWM with its dead-band unit, the ADC and its trigger routing, eQEP, the interrupt
+controller), against that plant, on every commit, with the true shaft and the bridge's actual
+register state to test against.
 
 ## Run it
 
@@ -61,6 +74,7 @@ the others catch a drive that only works on the motor it was tuned on.
 | --- | --- |
 | `test_boots_and_reports_pass` | the firmware's own verdict |
 | `test_current_sense_offsets_are_midscale` | ADC offset calibration |
+| `test_bridge_has_dead_time` | every phase's dead-band unit is on with at least `MIN_DEAD_NS` (your gate driver's minimum), read from the ePWM registers |
 | `test_encoder_alignment_is_field_oriented` | under load the current vector is within 15 deg of the q axis (a wrong encoder zero fails this) |
 | `test_rise_time_0_to_1000_rpm` | 10-90% within 25% of the current-limited minimum J dw / (Kt Imax) |
 | `test_overshoot_1000_rpm`, `test_overshoot_3000_rpm` | under 10% and 5% (integrator windup fails this) |
@@ -88,6 +102,7 @@ It needs repository secrets `SIM_EMAIL` and `SIM_API_KEY`.
 
 - Simulated only: not yet run on an AM263x LaunchPad and motor. Cycle counts are the simulator's
   estimate, not a silicon measurement.
-- The plant averages switching (no ripple, no dead time) and the sensors are ideal.
+- The plant averages switching (no ripple) and the sensors are ideal; dead time enters as the
+  average voltage it costs each phase, read from the dead-band registers.
 - Needs a `sim` build with the AM263x ADC volts input and ePWM peek (pyrite PR);
   the released 0.10.2 does not have them.
