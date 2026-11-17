@@ -6,8 +6,6 @@ import pytest
 
 from conftest import STEP_1000_MS, STEP_3000_MS
 
-CPU_HZ = 400_000_000
-PWM_PERIOD_NS = 50_000
 IQ_LIMIT_A = 5.0     # fw/foc.c IQ_MAX
 LOAD_NM, KT = 0.05, 1.5 * 7 * 0.004
 
@@ -21,7 +19,10 @@ def detuned_by_inertia(request, run):
 
 
 def load_start_ms(run):
-    return next(p["t"] for p in run.plant if p["load"] > 0) * 1000
+    loaded = [p["t"] for p in run.plant if p["load"] > 0]
+    top = max(p["rpm"] for p in run.plant)
+    assert loaded, f"the load never came on: the plant applies it once the shaft reaches 2950 rpm, it peaked at {top} rpm"
+    return loaded[0] * 1000
 
 
 # --- bring-up ---------------------------------------------------------------------------------
@@ -110,12 +111,12 @@ def test_current_limit_is_respected(run):
 
 def test_firmware_speed_matches_the_shaft(run):
     """The firmware's eQEP speed against the plant's true speed, in steady state."""
-    fw = {r["ms"]: r["rpm"] for r in run.rows if STEP_3000_MS + 250 <= r["ms"] < load_start_ms(run)}
-    true = {round(p["t"] * 1000): p["rpm"] for p in run.plant}
-    pairs = [(v, true[ms]) for ms, v in fw.items() if ms in true]
+    fw = [r for r in run.rows if STEP_3000_MS + 250 <= r["ms"] < load_start_ms(run)]
+    nearest = lambda ms: min(run.plant, key=lambda p: abs(p["t"] * 1000 - ms))["rpm"]
+    pairs = [(r["rpm"], nearest(r["ms"])) for r in fw]
     assert pairs and all(abs(a - b) <= 30 for a, b in pairs), pairs
 
 
 def test_isr_fits_the_pwm_period(run):
-    cycles = int(run.field(r"isr worst (\d+) cycles")[1])
-    assert cycles / CPU_HZ * 1e9 < PWM_PERIOD_NS / 10, f"{cycles} cycles is over 10% of the PWM period"
+    m = run.field(r"isr worst (\d+) cycles = (\d+) ns at \d+ MHz \(budget (\d+) ns\)")
+    assert int(m[2]) < int(m[3]) / 10, f"{m[1]} cycles ({m[2]} ns) is over 10% of the {m[3]} ns PWM period"

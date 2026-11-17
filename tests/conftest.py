@@ -42,7 +42,7 @@ def simulate(params):
     sim = os.environ.get("SIM") or shutil.which("sim")
     assert sim, "no `sim` on PATH: install it (https://simantic.com/install) or set SIM=<path>"
     assert (ROOT / "fw/foc.release.out").exists(), "firmware not built: see README"
-    p = subprocess.run([sim, "run", "--scenario", str(ROOT / "sim/motor.yaml"), "--ascii", "--timeout", "1.5"],
+    p = subprocess.run([sim, "run", "--scenario", str(ROOT / "sim/motor.yaml"), "--ascii", "--timeout", "2.5"],
                        capture_output=True, text=True, timeout=300,
                        env={**os.environ, "PLANT": json.dumps(params)})
     assert p.returncode == 0, f"sim failed ({p.returncode}):\n{p.stdout}\n{p.stderr}"

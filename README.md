@@ -12,7 +12,7 @@ Simantic's firmware simulator. No board or motor is needed to build, run or test
 - **The simulation** (`sim/`): the firmware binary runs unmodified on the simulated AM2634.
   `plant.py` is a PMSM (R 0.2 Ohm, L 100 uH, 7 pole pairs, 24 V bus) that reads the ePWM compare
   registers and drives the ADC pins; `encoder.py` turns the shaft angle into eQEP A/B edges.
-  The plant adds a 0.05 Nm load at 1.0 s.
+  The plant adds a 0.05 Nm load 200 ms after the shaft first reaches 2950 rpm.
 - **The tests** (`tests/`): pytest runs the scenario against five motors and checks the drive's
   step response, load rejection, limits and timing against the plant's true shaft.
 
@@ -25,9 +25,17 @@ own speed, from eQEP; the blue line is the plant's true shaft. `tools/plot.py` r
 ## Run it
 
 ```sh
+./demo          # run the drive in sim and print its console
+./demo test     # the regression tests, five motors, about 30 s
+./demo plot     # draw docs/drive.png and open it
+```
+
+These use the committed `fw/foc.release.out`, so they need only `sim` and `uv`. To rebuild the firmware:
+
+```sh
 make -C fw PROFILE=release MCU_PLUS_SDK_PATH=... CGT_TI_ARM_CLANG_PATH=... \
      SYSCFG_PATH=... SYSCFG_CLI_PATH=... foc.release.out   # run twice on a clean tree (SysConfig ordering)
-sim run --scenario sim/motor.yaml --ascii --timeout 1.5
+sim run --scenario sim/motor.yaml --ascii --timeout 1.8
 ```
 
 Needs TI MCU+ SDK for AM263x 26.00.00.06, TI Arm Clang 5.1.1 and SysConfig.
@@ -69,6 +77,12 @@ and pytest would then flag the marker for removal.
 
 The tests caught one real bug while they were written: the speed PI wound up its integrator
 during current-limited steps (17% overshoot). `pi_run` now integrates only when unsaturated.
+
+## CI
+
+`.github/workflows/ci.yml` installs the released `sim` and runs the drive and the tests on every
+push and pull request, against the committed firmware (TI's toolchain is not installed in CI).
+It needs repository secrets `SIM_EMAIL` and `SIM_API_KEY`.
 
 ## Limits
 
