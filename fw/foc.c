@@ -23,7 +23,7 @@
 #include "ti_board_open_close.h"
 
 #define PI_F        3.14159265f
-#define PWM_HZ      20000u
+#define PWM_HZ      10000u
 #define TBPRD       (200000000u / (2u * PWM_HZ))   /* 200 MHz TBCLK, up-down */
 #define TS          (1.0f / PWM_HZ)
 #define SPEED_DIV   20u                             /* speed loop at 1 kHz */
