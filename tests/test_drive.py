@@ -6,8 +6,6 @@ import pytest
 
 from conftest import STEP_1000_MS, STEP_3000_MS
 
-CPU_HZ = 400_000_000
-PWM_PERIOD_NS = 50_000
 IQ_LIMIT_A = 5.0     # fw/foc.c IQ_MAX
 LOAD_NM, KT = 0.05, 1.5 * 7 * 0.004
 
@@ -117,5 +115,5 @@ def test_firmware_speed_matches_the_shaft(run):
 
 
 def test_isr_fits_the_pwm_period(run):
-    cycles = int(run.field(r"isr worst (\d+) cycles")[1])
-    assert cycles / CPU_HZ * 1e9 < PWM_PERIOD_NS / 10, f"{cycles} cycles is over 10% of the PWM period"
+    m = run.field(r"isr worst (\d+) cycles = (\d+) ns at \d+ MHz \(budget (\d+) ns\)")
+    assert int(m[2]) < int(m[3]) / 10, f"{m[1]} cycles ({m[2]} ns) is over 10% of the {m[3]} ns PWM period"

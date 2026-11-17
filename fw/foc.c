@@ -32,6 +32,7 @@
 #define COUNTS      2000                            /* encoder counts per mechanical turn */
 #define AMP_PER_LSB (3.3f / 4096.0f / 0.1f)         /* 10 mOhm shunt x10 amplifier: 0.1 V/A */
 #define IQ_MAX      5.0f
+#define TICKS(ms)   ((ms) * (PWM_HZ / 1000u))         /* ISR passes in ms */
 #define RPM(w)      ((w) * 60.0f / (2.0f * PI_F))
 
 static const uint32_t PWM[3] = { CSL_CONTROLSS_G0_EPWM0_U_BASE, CSL_CONTROLSS_G0_EPWM1_U_BASE,
@@ -87,7 +88,7 @@ static void foc_isr(void *arg)
 
     if (gMode == 0) {                      /* 50% duty, zero current: learn the amplifier offsets */
         gOffA += ra; gOffB += rb;
-        if (tick == 1000) { gOffA /= 1000; gOffB /= 1000; gMode = 1; }
+        if (tick == TICKS(50)) { gOffA /= TICKS(50); gOffB /= TICKS(50); gMode = 1; }
         return;
     }
     float ia = (ra - gOffA) * AMP_PER_LSB, ib = (rb - gOffB) * AMP_PER_LSB;
@@ -103,8 +104,8 @@ static void foc_isr(void *arg)
 
     static float iqRef;
     if (gMode == 1) {                       /* hold 3 A on the d axis; zero = mean position */
-        if (tick > 5000) { gAlignSum += pos; gAlignN++; }
-        if (tick == 8000) {
+        if (tick > TICKS(250)) { gAlignSum += pos; gAlignN++; }
+        if (tick == TICKS(400)) {
             gZero = (int32_t)(gAlignSum / (int64_t)gAlignN);
             for (int k = 0; k < 5; k++) gHist[k] = pos;
             gIdRef = 0.0f; gId.i = 0.0f;
@@ -129,7 +130,7 @@ static void foc_isr(void *arg)
 
     uint32_t dt = CycleCounterP_getCount32() - t0;
     gIsrCycles = dt;
-    if (dt > gIsrMax && tick > 1000) gIsrMax = dt;
+    if (dt > gIsrMax && tick > TICKS(50)) gIsrMax = dt;
 }
 
 static void pwm_init(void)
