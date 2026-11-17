@@ -30,7 +30,8 @@ jobs:
           "$HOME/.local/bin/sim" --version
 
       - name: Run the drive in simulation
-        run: sim run --scenario sim/motor.yaml --ascii --timeout 1.55 --expect "RESULT: PASS"
+        run: |
+          sim run --scenario sim/motor.yaml --ascii --timeout 1.55 --expect "RESULT: PASS"
 
       - name: Regression tests in simulation
         run: |
