@@ -25,6 +25,14 @@ own speed, from eQEP; the blue line is the plant's true shaft. `tools/plot.py` r
 ## Run it
 
 ```sh
+./demo          # run the drive in sim and print its console
+./demo test     # the regression tests, five motors, about 30 s
+./demo plot     # draw docs/drive.png and open it
+```
+
+These use the committed `fw/foc.release.out`, so they need only `sim` and `uv`. To rebuild the firmware:
+
+```sh
 make -C fw PROFILE=release MCU_PLUS_SDK_PATH=... CGT_TI_ARM_CLANG_PATH=... \
      SYSCFG_PATH=... SYSCFG_CLI_PATH=... foc.release.out   # run twice on a clean tree (SysConfig ordering)
 sim run --scenario sim/motor.yaml --ascii --timeout 1.8
@@ -69,6 +77,12 @@ and pytest would then flag the marker for removal.
 
 The tests caught one real bug while they were written: the speed PI wound up its integrator
 during current-limited steps (17% overshoot). `pi_run` now integrates only when unsaturated.
+
+## CI
+
+`.github/workflows/ci.yml` installs the released `sim` and runs the drive and the tests on every
+push and pull request, against the committed firmware (TI's toolchain is not installed in CI).
+It needs repository secrets `SIM_EMAIL` and `SIM_API_KEY`.
 
 ## Limits
 
