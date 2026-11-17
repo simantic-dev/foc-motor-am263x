@@ -19,7 +19,10 @@ def detuned_by_inertia(request, run):
 
 
 def load_start_ms(run):
-    return next(p["t"] for p in run.plant if p["load"] > 0) * 1000
+    loaded = [p["t"] for p in run.plant if p["load"] > 0]
+    top = max(p["rpm"] for p in run.plant)
+    assert loaded, f"the load never came on: the plant applies it once the shaft reaches 2950 rpm, it peaked at {top} rpm"
+    return loaded[0] * 1000
 
 
 # --- bring-up ---------------------------------------------------------------------------------
