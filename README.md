@@ -1,5 +1,9 @@
 # foc-motor-am263x
 
+<!-- simantic-banner -->
+> **Run this firmware with no hardware.** [Simantic](https://simantic.com) simulates the whole board, peripherals, sensors and buses included. Try it free at **[simantic.com](https://simantic.com)**, or run it locally: `curl -fsSL https://simantic.com/install | sh`
+
+
 Field-oriented control of a three-phase PMSM on a TI Sitara **AM2634** (Arm Cortex-R5F, 400 MHz),
 built with TI's MCU+ SDK and tested on every commit in simulation with [Pyrite](https://simantic.com),
 Simantic's firmware simulator. No board or motor is needed to build, run or test it.
