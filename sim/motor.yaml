@@ -5,5 +5,5 @@ machines:
     elf: ../fw/foc.release.out
     parts:
       - { name: plant,   type: peripheral,  address: 0xA0000400, size: 0x4, script: plant.py }
-      - { name: encoder, type: gpio-device, outputs: [eqep1.0, eqep1.1], script: encoder.py }
+      - { name: encoder, type: gpio-device, outputs: [iomux.37, iomux.38], script: encoder.py }
 quantum: 0.00001

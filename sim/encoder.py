@@ -1,5 +1,5 @@
 # 500-line quadrature encoder (2000 counts per turn) on the plant's shaft (pmsm.MOTOR), into
-# eQEP1 QEPA/QEPB. Host type: `gpio-device`, line 0 = A, line 1 = B. A periodic timer moves
+# the eQEP1 A/B pads (RGMII1_TD0/TD1, pads 37/38). Host type: `gpio-device`, line 0 = A, line 1 = B. A periodic timer moves
 # the emitted count one step toward the shaft's count, so edges are at least STEP_US apart
 # (200 k counts/s = 6000 rpm). Forward rotation is A leading B.
 import math
